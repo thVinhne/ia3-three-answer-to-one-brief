@@ -71,3 +71,61 @@ Rejected: Không ghi “A mục 7 FAIL” chỉ từ rủi ro stock lỗi, vì m
 
 Verification: Trợ lý đọc VERDICTS.md, ASSISTANT-REVIEW.md, AI-LOG.md, ba file JS và ba ảnh hiện có; xác nhận review đã lưu khớp nguyên văn bản tôi cung cấp. Ảnh A cho thấy 0 đ dù tám stock request trả 200; ảnh B mode hang cho thấy Pending nhưng chưa chứng minh riêng mốc trên năm giây; ảnh mang tên C cho thấy lỗi ts(2353) của B. Lần này không chạy lại bảng kiểm thử, không sửa JS và không tạo commit. Lệnh đọc Git trong thư mục D bị từ chối truy cập, nên chưa xác minh lịch sử commit.
 
+
+
+## 2026-11-03 — Sửa A mục 2 và kiểm tra 
+
+Tool: Codex trong chat hỗ trợ IA3; model của lần sửa này chưa được xác nhận, không mặc định là 6.1 Sol.
+
+Asked for: “Ở bản A, mục 2 trong chế độ normal hiển thị 0 đ thay vì 12.360.000 đ vì dòng 52–56 không chờ các request stock hoàn tất; chỉ sửa a.js để chờ đủ kết quả rồi tính và hiển thị tổng, đồng thời giữ các request stock chạy song song và các mục đang PASS tiếp tục PASS.”
+
+Kept: Thay `forEach(async ...)` bằng `await Promise.all(products.map(...))`, rồi dùng `reduce(..., 0)` tính tổng và cập nhật giao diện khi đủ stock. Giữ các request stock song song và cách xử lý tải sản phẩm, timeout, Retry, empty. Trong lần sửa code, trợ lý chỉ sửa a.js.
+
+Changed: Bản A chuyển từ hiển thị `0 đ` sang `12.360.000 đ` sau khi đủ tám kết quả stock. Trợ lý tái hiện assertion thất bại trước sửa, rồi chạy lại cùng kiểm tra sau sửa với server starter riêng và DOM mô phỏng. Kết quả tự động đạt tổng đúng, kiểm tra song song, các hành vi được kiểm tra ở normal/slow/error/hang/empty, Retry và cú pháp.
+
+Rejected: Chưa có lỗi của bản sửa được các kiểm tra này phát hiện. Không coi kiểm tra Node với DOM mô phỏng là quan sát trình duyệt hoặc kết quả TypeScript checker. Lần sửa chưa có hai kiểm tra đó, nên trợ lý đã nêu rõ giới hạn.
+
+Verification: Kiểm tra trước sửa thực nhận `0 đ`, sau sửa đạt `12.360.000 đ`; tám request stock bắt đầu trong khoảng 1,6 ms ở normal và đều bắt đầu trước khi request đầu tiên hoàn tất. Timeout tự động khoảng 5.007 ms; slow, error/Retry và empty đạt; không có rejection chưa xử lý hoặc console.error. `node --check` đạt. Trợ lý không tạo commit.
+
+## 2026-11-03 — Xác nhận chạy lại A và cập nhật VERDICTS/AI-LOG
+
+Tool: Codex trong chat hỗ trợ IA3; model chưa được xác nhận trong tài liệu.
+
+Asked for: “cập nhật AI log và verdict. Tôi đã xác nhận lại các mục cần chạy và đều pass, có evidence cho row2”.
+
+Kept: Ghi phần kết quả sau sửa A riêng trong VERDICTS.md, đủ mục 1–8 và empty đều PASS theo xác nhận chạy lại của tôi. Giữ nguyên dự đoán và kết quả bản gốc. Phân biệt phần tôi kiểm thử lại với phần trợ lý đã kiểm tra tự động trên server starter qua DOM mô phỏng.
+
+Changed: Bổ sung lần sửa A và lần cập nhật báo cáo này vào AI-LOG.md. Trợ lý đọc ảnh `evidence/a-row2-fix.png` và phát hiện URL `?v=c`, tiêu đề version C. Báo cáo ghi rõ cần ảnh đúng A thay vì coi tên file là đủ chứng minh.
+
+Rejected: Không dùng `a-row2-fix.png` hiện tại để chứng minh A mục 2, vì nội dung ảnh là C. Đây là nhầm bằng chứng, không phải lỗi bỏ sót trong code. Kết quả A PASS được ghi theo xác nhận chạy lại của tôi và kiểm tra tự động trước đó; chưa có lỗi bản sửa được phát hiện.
+
+Verification: Tôi xác nhận các mục cần chạy lại đều PASS. Trợ lý kiểm tra ảnh hiện có, mã a.js đã sửa và nội dung báo cáo trước khi cập nhật; lần cập nhật này không chạy lại kiểm thử, không sửa JS hoặc ảnh và không tạo commit. Việc chụp lại đúng ảnh A mục 2 còn cần thực hiện.
+
+
+## 2026-11-03 — Sửa B mục 6/8 và kiểm tra
+
+Tool: Codex trong cuộc trò chuyện phụ hỗ trợ IA3; model của lần sửa chưa được xác nhận, không mặc định là 6.1 Sol.
+
+Asked for: “Bản B vẫn Loading sau hơn năm giây trong chế độ hang và @ts-check báo timeout không thuộc RequestInit; chỉ sửa b.js để thay tùy chọn này bằng cơ chế hủy request sau năm giây hợp lệ, giữ Retry hoạt động và các request stock chạy song song”.
+
+Kept: Thay đúng một dòng trong b.js, từ `timeout: 5000` sang `signal: AbortSignal.timeout(5000)`. Giữ luồng Retry và `Promise.all(products.map(...))` tải stock song song.
+
+Changed: Sửa B mục 6 và 8. Trước sửa, kiểm tra tự động sau khoảng 5506 ms vẫn Loading và Retry ẩn; sau sửa, lỗi và Retry xuất hiện khoảng 5004 ms. TypeScript checker tái hiện TS2353 với tùy chọn cũ và nhận 0 diagnostic cho B sau sửa.
+
+Rejected: Chưa phát hiện lỗi mới của bản sửa trong các kiểm tra đã chạy. Không coi kiểm tra Node với DOM giả lập là lượt chạy trình duyệt; phần tôi chạy thật được xác nhận trong mục nhật ký tiếp theo.
+
+Verification: Trợ lý gọi server starter thật trên cổng riêng qua DOM giả lập, kiểm tra normal, slow, error, hang, empty và Retry. Các assertion về thẻ, thứ tự, giá thẻ đầu, tên scarf, tổng `12.360.000 đ`, trạng thái và Retry đạt. Tám stock request bắt đầu trong khoảng 0,5–1,5 ms. `node --check` đạt; TypeScript 6.0.3 dùng cấu hình starter và `@ts-check` trong bộ nhớ có 0 diagnostic cho B. Trong lần sửa code chỉ b.js được sửa, chưa tạo commit.
+
+## 2026-11-03 — Xác nhận B PASS và cập nhật VERDICTS/AI-LOG
+
+Tool: Codex trong cuộc trò chuyện phụ hỗ trợ IA3; model chưa được xác nhận trong tài liệu.
+
+Asked for: “cập nhật lại verdict và ai log. Tôi đã chạy thử và pass toàn bộ, có evidence”.
+
+Kept: Ghi riêng đủ mục 1–8 và empty của B sau sửa là PASS theo xác nhận chạy lại của tôi; giữ kết quả FAIL bản gốc. Dẫn `evidence/b-row6-fix.png` và `evidence/b-row8-fix.png`.
+
+Changed: Thêm phần sau sửa B vào VERDICTS.md, điền dòng 16 cho lệnh fetch gây lỗi trong bản gốc, và thêm lần sửa cùng lần cập nhật này vào AI-LOG.md. Ảnh mục 6 đúng B, mode hang, thông báo lỗi và Retry; ảnh mục 8 có `@ts-check`, signal hợp lệ và Problems không có lỗi.
+
+Rejected: Không mô tả ảnh b-row6-fix.png là tự chứng minh thời gian năm giây vì ảnh không có thời gian chờ hoặc Network. Mốc thời gian dựa vào xác nhận của tôi và số đo tự động. Các mục khác được ghi PASS theo xác nhận chạy lại toàn bộ của tôi, không suy ra từ hai ảnh.
+
+Verification: Tôi xác nhận đã chạy lại toàn bộ và PASS. Trợ lý đọc hai ảnh sau sửa, mã b.js và báo cáo hiện có, đối chiếu kiểm tra tự động ở lần sửa trước. Lần cập nhật này chỉ sửa VERDICTS.md và AI-LOG.md; không chạy lại bảng kiểm thử, không sửa JS hoặc ảnh và không tạo commit.

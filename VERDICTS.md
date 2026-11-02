@@ -117,7 +117,7 @@ Mục 6 và mục 8 cùng liên quan đến lệnh:
 
 fetch('/api/products', { timeout: 5000 })
 
-- Vị trí trong file gốc: public/versions/b.js, dòng [điền số dòng].
+- Vị trí trong file gốc: public/versions/b.js, dòng 16.
 - Mục 6: thuộc tính timeout không thiết lập thời hạn chờ cho
   Fetch API của trình duyệt, nên request không bị hủy sau năm giây.
 - Mục 8: timeout không phải thuộc tính hợp lệ của RequestInit,
@@ -160,3 +160,77 @@ fetch('/api/products', { timeout: 5000 })
   “Giữ nguyên c.js vì các lượt chạy đã đạt đủ mục 1–8 và empty;
   khi sửa các bản khác, cần giữ nguyên hành vi hiển thị,
   timeout, Retry và việc tải stock song song như yêu cầu.”
+
+## Kết quả sau sửa: Version A (2026-11-03)
+
+Bản gốc vẫn có verdict `fix`, mục quyết định là mục 2. Kết quả bản gốc và dự đoán ở trên được giữ nguyên. Sau khi trợ lý sửa, tôi xác nhận đã chạy lại các mục cần kiểm tra và tất cả đều PASS. Bảng dưới ghi kết quả do tôi xác nhận; trợ lý không tự chạy lại trình duyệt hoặc TypeScript checker.
+
+### Thay đổi trong a.js
+
+Chỉ thay khối tính tổng tồn kho. Dòng 51 chờ `Promise.all(products.map(...))` lấy đủ stock; dòng 52 dùng `reduce(..., 0)` tính tổng theo chỉ số tương ứng của sản phẩm và stock; dòng 53 mới cập nhật giao diện. Các request được khởi chạy bởi `map` trước khi chờ kết quả, nên vẫn chạy song song.
+
+```js
+const stocks = await Promise.all(products.map((p) => getStock(p.id)));
+const total = products.reduce((sum, p, i) => sum + p.price * stocks[i], 0);
+stockValue.textContent = formatVnd(total);
+```
+
+### Kiểm tra lại sau sửa do tôi xác nhận
+
+| Mục | Kết quả | Tiêu chí đã được tôi xác nhận đạt sau sửa | Nguồn |
+|---|---|---|---|
+| 1 | PASS | normal: tám thẻ đúng thứ tự API, giá đúng định dạng, trạng thái trống. | Xác nhận chạy lại của tôi trong chat. |
+| 2 | PASS | normal: tổng tồn kho là `12.360.000 đ`. | Xác nhận chạy lại của tôi; kiểm tra tự động của trợ lý cũng đạt. Ảnh hiện có cần chụp lại đúng A, xem lưu ý bên dưới. |
+| 3 | PASS | Tên cuối hiển thị nguyên văn `Scarf <i>limited</i>`, không in nghiêng. | Xác nhận chạy lại của tôi trong chat. |
+| 4 | PASS | slow: Loading khoảng ba giây, sau đó đủ thẻ và xóa trạng thái. | Xác nhận chạy lại của tôi trong chat. |
+| 5 | PASS | error: báo lỗi, có Retry, không có thẻ; chuyển normal rồi Retry khôi phục danh mục và ẩn thông báo/nút. | Xác nhận chạy lại của tôi trong chat. |
+| 6 | PASS | hang: báo lỗi và có Retry sau khoảng năm giây. | Xác nhận chạy lại của tôi; kiểm tra tự động đo được khoảng 5.007 ms. |
+| 7 | PASS | Không có lỗi Uncaught hoặc lỗi do code tự in trong các lượt 1–6. | Xác nhận chạy lại của tôi trong chat. |
+| 8 | PASS | Kiểm tra lại bằng `@ts-check` không có lỗi cho A. | Xác nhận của tôi rằng các mục cần chạy lại đều PASS; trợ lý chưa chạy TypeScript checker. |
+| empty | PASS | Không có thẻ, hiện `No products yet.` và `0 đ`. | Xác nhận chạy lại của tôi trong chat. |
+
+### Kiểm tra tự động của trợ lý và yêu cầu song song
+
+Trợ lý đã chạy a.js bằng Node.js với DOM mô phỏng tối thiểu, gọi HTTP thật tới một tiến trình starter `server.mjs` riêng dưới đủ năm mode. Trước sửa, kiểm tra mục 2 thất bại vì thực nhận `0 đ` thay vì `12.360.000 đ`. Sau sửa, cùng kiểm tra đạt tổng đúng; thứ tự tám sản phẩm, giá thẻ đầu, nội dung tên scarf, slow, HTTP 500, Retry, hang và empty đều đạt các assertion đã chạy. Không ghi nhận `unhandledRejection` hoặc `console.error`. Kiểm tra cú pháp `node --check` cũng đạt.
+
+Kiểm tra song song đo thời điểm bắt đầu tám request stock trước thời điểm request đầu tiên hoàn thành. Ở normal, độ lệch giữa request bắt đầu sớm nhất và muộn nhất khoảng 1,6 ms; ở slow và sau Retry khoảng 0,4 ms. Đây là số đo tự động trong Node, không phải ảnh waterfall trình duyệt. Các kiểm tra tự động này không tự xác nhận hiển thị bằng trình duyệt hoặc mục 8; kết quả chạy lại của tôi bổ sung các phần đó.
+
+### Bằng chứng mục 2 sau sửa
+
+Ảnh được cung cấp tại [evidence/a-row2-fix.png](evidence/a-row2-fix.png) hiện hiển thị `localhost:5050/?v=c` và tiêu đề `Catalogue — version C`, dù tổng trong ảnh là `12.360.000 đ`. Vì vậy, ảnh này chưa chứng minh A sau sửa. Cần chụp lại trang `/?v=a` ở normal, với tổng đúng và Network hiển thị các request stock để có bằng chứng khớp phiên bản. Chưa đổi tên, chỉnh sửa hoặc thay thế ảnh hiện có.
+
+Kết luận sau sửa: A đạt đủ mục 1–8 và empty theo xác nhận chạy lại của tôi; yêu cầu stock song song đạt kiểm tra tự động. Cần bổ sung đúng ảnh A mục 2. Chưa ghi nhận commit cho lần sửa này trong chat; cập nhật báo cáo được thực hiện riêng với thay đổi code.
+
+
+## Kết quả sau sửa: Version B (2026-11-03)
+
+Bản gốc vẫn có verdict `fix` vì mục 6 và 8 FAIL. Tôi đã chạy lại toàn bộ mục 1–8 và empty sau sửa, xác nhận tất cả PASS. Dự đoán và kết quả bản gốc ở trên được giữ để đối chiếu trước/sau.
+
+Chỉ sửa dòng 16 trong b.js: thay `timeout: 5000` bằng `signal: AbortSignal.timeout(5000)`. Khi hết năm giây, request bị hủy và catch hiện thông báo lỗi cùng Retry. Luồng Retry và `Promise.all(products.map(...))` gửi stock song song được giữ nguyên.
+
+| Mục | Sau sửa | Kết quả được tôi xác nhận | Bằng chứng hoặc nguồn |
+|---|---|---|---|
+| 1 | PASS | normal: tám thẻ đúng thứ tự API, giá đúng định dạng, trạng thái trống. | Xác nhận chạy lại toàn bộ của tôi trong chat. |
+| 2 | PASS | Tổng tồn kho là `12.360.000 đ` sau khi nhận đủ stock. | Xác nhận của tôi; kiểm tra tự động của trợ lý cũng đạt. |
+| 3 | PASS | Tên cuối hiển thị nguyên văn `Scarf <i>limited</i>`, không in nghiêng. | Xác nhận chạy lại của tôi. |
+| 4 | PASS | slow: Loading khoảng ba giây, rồi đủ tám thẻ và xóa trạng thái. | Xác nhận của tôi; kiểm tra tự động cũng đạt. |
+| 5 | PASS | error: báo lỗi, có Retry, không có thẻ; chuyển normal rồi Retry khôi phục danh mục, xóa thông báo và ẩn nút. | Xác nhận của tôi; trợ lý cũng kiểm tra Retry sau error và hang. |
+| 6 | PASS | hang: sau khoảng năm giây hiện `Could not load products.` và Retry. | [b-row6-fix.png](evidence/b-row6-fix.png); xác nhận của tôi; kiểm tra tự động khoảng 5004 ms. |
+| 7 | PASS | Không có lỗi Uncaught hoặc lỗi do code tự in trong các lượt 1–6. | Xác nhận chạy lại trên trình duyệt của tôi. |
+| 8 | PASS | Bật `@ts-check` cho b.js, không có lỗi kiểu. | [b-row8-fix.png](evidence/b-row8-fix.png); TypeScript checker của trợ lý cũng nhận 0 diagnostic cho B. |
+| empty | PASS | Không có thẻ; hiện `No products yet.` và `0 đ`. | Xác nhận của tôi; kiểm tra tự động cũng đạt. |
+
+### Kiểm tra của trợ lý trong lần sửa B
+
+Trợ lý chạy b.js bằng Node.js với DOM giả lập, gọi HTTP tới server starter thật trên cổng riêng. Trước sửa, khoảng 5506 ms vẫn Loading và Retry ẩn. Sau sửa, hang hiện lỗi và Retry sau khoảng 5004 ms. Các assertion đã chạy ở normal, slow, error, hang, empty và Retry đều đạt, gồm thứ tự tám thẻ, giá thẻ đầu, tên scarf nguyên văn và tổng đúng.
+
+Tám request stock bắt đầu trong khoảng 0,5–1,5 ms ở các lần đo, xác nhận vẫn gửi song song trong kiểm tra tự động. Đây là số đo Node, không phải ảnh waterfall trình duyệt.
+
+Kiểm tra cú pháp `node --check` đạt. TypeScript 6.0.3 với jsconfig.json của starter và `@ts-check` thêm trong bộ nhớ tái hiện TS2353 của tùy chọn cũ; bản sửa có 0 diagnostic cho B. Các kiểm tra tự động này được thực hiện trong lần sửa trước. Lần cập nhật báo cáo chỉ đọc file và ảnh; các kết quả trình duyệt ở bảng là từ xác nhận chạy lại của tôi.
+
+### Đối chiếu ảnh sau sửa
+
+- [b-row6-fix.png](evidence/b-row6-fix.png) hiển thị đúng URL `/?v=b`, version B, mode hang, thông báo lỗi và Retry. Ảnh không có thời gian chờ hoặc Network, nên mốc năm giây dựa vào xác nhận của tôi và số đo tự động.
+- [b-row8-fix.png](evidence/b-row8-fix.png) hiển thị b.js với `@ts-check` ở dòng đầu, signal hợp lệ và Problems báo không phát hiện vấn đề. Lệnh fetch ở dòng 17 trong ảnh do thêm dòng kiểm tra; trong file hiện tại, vị trí là dòng 16.
+
+Kết luận sau sửa: B đạt đủ mục 1–8 và empty theo xác nhận chạy lại của tôi; yêu cầu stock song song đạt kiểm tra tự động. Chưa phát hiện lỗi mới qua các lượt này. Lần cập nhật báo cáo không tạo commit.
