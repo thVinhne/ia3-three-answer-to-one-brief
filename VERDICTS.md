@@ -63,3 +63,100 @@ chưa dựa trên kết quả chạy chương trình.
   request stock chạy song song và được chờ trước khi tính tổng.
 - Điều cần kiểm chứng: Chạy đủ bảng, đặc biệt timeout trong
   chế độ hang, thứ tự request trong Network và kiểm tra @ts-check.
+
+  ## Kết quả kiểm thử bản gốc
+
+### Version A
+
+| Mục | Kết quả | Quan sát thực tế | Dòng gây lỗi | Bằng chứng |
+|---|---|---|---|---|
+| 1 | PASS | Chế độ normal hiển thị tám thẻ đúng thứ tự API, giá đúng định dạng Việt Nam và dòng trạng thái trống. | — | Kiểm tra trực tiếp trên trang và đối chiếu API. |
+| 2 | FAIL | Chế độ normal hiển thị Stock value là 0 đ, thay vì 12.360.000 đ. | public/versions/a.js, dòng 52–56. | evidence/a-row2.png |
+| 3 | PASS | Thẻ cuối hiển thị nguyên văn Scarf <i>limited</i>, nhìn thấy các dấu ngoặc và không có chữ in nghiêng. | — | Kiểm tra thẻ cuối trên trang. |
+| 4 | PASS | Chế độ slow hiển thị Loading products… khoảng ba giây, sau đó xuất hiện tám thẻ và dòng trạng thái được xóa. | — | Quan sát trong lần chạy slow. |
+| 5 | PASS | Chế độ error hiện Could not load products., có Retry và không có thẻ; chuyển normal rồi nhấn Retry thì hiện tám thẻ, thông báo và nút Retry biến mất. | — | Thử error → normal → Retry. |
+| 6 | PASS | Chế độ hang hiện thông báo lỗi và Retry sau khoảng năm giây, không tiếp tục Loading đến giây thứ bảy. | — | Quan sát thời gian trong lần chạy hang. |
+| 7 | PASS | Trong các lượt thử 1–6, không thấy lỗi Uncaught hoặc lỗi do code tự in; dòng GET … 500 do trình duyệt báo xuất hiện khi thử error. | — | Quan sát Console. |
+| 8 | PASS | Thêm tạm // @ts-check vào dòng đầu a.js khi mở đúng thư mục dự án; không có lỗi được báo cho file này. Đã bỏ dòng kiểm tra sau đó. | — | Kiểm tra trong VS Code. |
+| empty | PASS | Chế độ empty không có thẻ, hiển thị No products yet. và tổng 0 đ. | — | Quan sát trong lần chạy empty. |
+
+#### Nguyên nhân mục 2
+
+Ở dòng 52–55, products.forEach(async ...) khởi chạy các thao tác
+lấy tồn kho nhưng không chờ chúng hoàn tất. Dòng 56 hiển thị total
+khi giá trị vẫn bằng 0. Khi các callback cập nhật total sau đó,
+code không cập nhật lại nội dung trên giao diện.
+
+- Verdict: fix.
+- Mục quyết định: mục 2.
+- Đối chiếu dự đoán: Dự đoán mục 2 FAIL được kết quả thực tế xác nhận.
+- Một câu gửi assistant:
+  “Ở bản A, mục 2 trong chế độ normal hiển thị 0 đ thay vì
+  12.360.000 đ vì dòng 52–56 không chờ các request stock hoàn tất;
+  chỉ sửa a.js để chờ đủ kết quả rồi tính và hiển thị tổng,
+  đồng thời giữ các request stock chạy song song và các mục
+  đang PASS tiếp tục PASS.”
+
+  ### Version B — Kết quả bản gốc
+
+| Mục | Kết quả | Quan sát thực tế | Bằng chứng |
+|---|---|---|---|
+| 1 | PASS | normal hiển thị tám thẻ đúng thứ tự API, giá đúng định dạng và dòng trạng thái trống. | Kiểm tra giao diện và đối chiếu Response của /api/products. |
+| 2 | PASS | Sau khi các request tồn kho hoàn tất, tổng hiển thị 12.360.000 đ. | Quan sát giao diện và Network. |
+| 3 | PASS | Tên cuối hiển thị nguyên văn Scarf <i>limited</i>, không in nghiêng. | Quan sát thẻ cuối. |
+| 4 | PASS | slow hiện Loading products… khoảng ba giây, sau đó hiện tám thẻ và xóa trạng thái. | Quan sát lần chạy slow. |
+| 5 | PASS | error hiện thông báo lỗi, Retry và không có thẻ; chuyển normal rồi nhấn Retry thì hiện tám thẻ, xóa thông báo và ẩn Retry. | Thử error → normal → Retry. |
+| 6 | FAIL | Sau hơn năm giây ở chế độ hang, trang vẫn Loading và chưa có Retry. Khoảng 30 giây sau, server trả HTTP 504, trang mới hiện thông báo lỗi và Retry. | [Ảnh sau hơn năm giây](evidence/b-row6.png) |
+| 7 | PASS | Trong các lượt thử 1–6, không thấy lỗi Uncaught hoặc lỗi do code tự in. | Quan sát Console; phân biệt các dòng HTTP lỗi do trình duyệt tự báo. |
+| 8 | FAIL | Bật // @ts-check, VS Code báo ts(2353): thuộc tính timeout không tồn tại trong kiểu RequestInit. | [Ảnh lỗi kiểm tra kiểu](evidence/b-row8.png) |
+| empty | PASS | Không có thẻ; trạng thái là No products yet. và tổng là 0 đ. | Quan sát lần chạy empty. |
+
+#### Dòng code gây lỗi
+
+Mục 6 và mục 8 cùng liên quan đến lệnh:
+
+fetch('/api/products', { timeout: 5000 })
+
+- Vị trí trong file gốc: public/versions/b.js, dòng [điền số dòng].
+- Mục 6: thuộc tính timeout không thiết lập thời hạn chờ cho
+  Fetch API của trình duyệt, nên request không bị hủy sau năm giây.
+- Mục 8: timeout không phải thuộc tính hợp lệ của RequestInit,
+  nên bộ kiểm tra kiểu báo lỗi.
+
+#### Verdict
+
+- Quyết định: fix.
+- Mục quyết định: 6 và 8.
+- Đối chiếu dự đoán: Kết quả kiểm thử xác nhận dự đoán
+  FAIL ở mục 6 và mục 8.
+- Một câu gửi assistant:
+  “Bản B vẫn Loading sau hơn năm giây trong chế độ hang và
+  @ts-check báo timeout không thuộc RequestInit; chỉ sửa b.js
+  để thay tùy chọn này bằng cơ chế hủy request sau năm giây
+  hợp lệ, giữ Retry hoạt động và các request stock chạy song song.”
+
+  ### Version C — Kết quả bản gốc
+
+| Mục | Kết quả | Quan sát thực tế | Bằng chứng |
+|---|---|---|---|
+| 1 | PASS | normal hiển thị tám thẻ đúng thứ tự API, giá đúng định dạng và dòng trạng thái trống. | Kiểm tra giao diện và đối chiếu Response của /api/products. |
+| 2 | PASS | Sau khi các request tồn kho hoàn tất, tổng hiển thị 12.360.000 đ. | Quan sát giao diện và Network. |
+| 3 | PASS | Tên cuối hiển thị nguyên văn Scarf <i>limited</i>, không in nghiêng. | Quan sát thẻ cuối. |
+| 4 | PASS | slow hiện Loading products… khoảng ba giây, sau đó hiện tám thẻ và xóa trạng thái. | Quan sát lần chạy slow. |
+| 5 | PASS | error hiện thông báo lỗi, Retry và không có thẻ; chuyển normal rồi nhấn Retry thì hiện tám thẻ, xóa thông báo và ẩn Retry. | Thử error → normal → Retry. |
+| 6 | PASS | hang hiện Could not load products. và Retry sau khoảng năm giây; đến giây thứ bảy không còn Loading. | Quan sát thời gian, giao diện và Network. |
+| 7 | PASS | Trong các lượt thử 1–6, không thấy lỗi Uncaught hoặc lỗi do code tự in. | Quan sát Console. |
+| 8 | PASS | Thêm // @ts-check ở dòng đầu c.js, không thấy lỗi kiểm tra kiểu cho file này; đã bỏ dòng thêm tạm sau kiểm tra. | Kiểm tra trong VS Code. |
+| empty | PASS | Không có thẻ; trạng thái là No products yet. và tổng là 0 đ. | Quan sát lần chạy empty. |
+
+#### Verdict
+
+- Quyết định: keep.
+- Mục quyết định: Không có mục FAIL trong các mục 1–8 và empty.
+- Dòng code gây lỗi: Không phát hiện qua các lượt kiểm thử này.
+- Đối chiếu dự đoán: Kết quả kiểm thử xác nhận dự đoán PASS
+  của cả chín mục.
+- Một câu gửi assistant:
+  “Giữ nguyên c.js vì các lượt chạy đã đạt đủ mục 1–8 và empty;
+  khi sửa các bản khác, cần giữ nguyên hành vi hiển thị,
+  timeout, Retry và việc tải stock song song như yêu cầu.”

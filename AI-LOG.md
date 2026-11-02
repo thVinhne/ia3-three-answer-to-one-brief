@@ -18,3 +18,27 @@ Asked for Đọc VERDICTS.md của tôi và đối chiếu với ba file JS đ�
 Kept Ghi nhận các góp ý: B mục 5 còn để PASS/FAIL; cần bọc chuỗi chứa <i> bằng backtick, thống nhất FAIL và sửa dấu chấm thừa.
 Changed Chưa xác nhận đã áp dụng các góp ý vào file.
 Rejected Chưa có; AI chưa chạy kiểm thử và không xác minh được lịch sử commit vì lệnh Git bị từ chối truy cập.
+
+## 2026-11-03 — Ghi nhận kiểm thử bản gốc A
+
+Tool: Codex.
+
+Asked for: Tôi báo rằng bản A đạt mọi mục trừ mục 2 và cung cấp
+đường dẫn ảnh evidence; nhờ hướng dẫn đặt tên ảnh, ghi VERDICTS.md
+và AI-LOG.md.
+
+Kept: AI đọc ảnh và xác nhận ảnh thể hiện bản A ở chế độ normal
+với Stock value là 0 đ. AI đối chiếu a.js, xác định dòng 52–56
+không chờ các callback async hoàn tất trước khi hiển thị tổng.
+Tôi dùng hướng dẫn để ghi kết quả kiểm thử và câu yêu cầu sửa.
+
+Changed: AI chỉ ra ảnh hiện tại chưa có DevTools hoặc terminal
+theo rubric; đề xuất chụp lại giao diện cùng Network và đặt tên
+a-row2.png. Chưa sửa code trong lần tương tác này.
+
+Rejected: Chưa có nhận định sai của AI được kiểm thử bác bỏ
+trong lần tương tác này.
+
+Verification: Các kết quả PASS/FAIL là từ lần tôi chạy kiểm thử.
+AI chỉ đọc ảnh, code và tài liệu hiện có, không tự chạy lại
+toàn bộ bảng.

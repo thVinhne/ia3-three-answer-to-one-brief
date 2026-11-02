@@ -1,4 +1,4 @@
-// Catalogue loader for session 5, written by an assistant from brief.md.
+// // Catalogue loader for session 5, written by an assistant from brief.md.
 // panel.js imports this file for ?v=<letter>; it runs as soon as it loads.
 
 const catalogue = /** @type {HTMLUListElement} */ (document.getElementById('catalogue'));
