@@ -129,3 +129,32 @@ Changed: Thêm phần sau sửa B vào VERDICTS.md, điền dòng 16 cho lệnh 
 Rejected: Không mô tả ảnh b-row6-fix.png là tự chứng minh thời gian năm giây vì ảnh không có thời gian chờ hoặc Network. Mốc thời gian dựa vào xác nhận của tôi và số đo tự động. Các mục khác được ghi PASS theo xác nhận chạy lại toàn bộ của tôi, không suy ra từ hai ảnh.
 
 Verification: Tôi xác nhận đã chạy lại toàn bộ và PASS. Trợ lý đọc hai ảnh sau sửa, mã b.js và báo cáo hiện có, đối chiếu kiểm tra tự động ở lần sửa trước. Lần cập nhật này chỉ sửa VERDICTS.md và AI-LOG.md; không chạy lại bảng kiểm thử, không sửa JS hoặc ảnh và không tạo commit.
+
+
+## 2026-11-03 — Hướng dẫn kiểm tra CSR–SSR
+
+Tool: Codex trong cuộc trò chuyện phụ hỗ trợ IA3; model chưa được xác nhận trong tài liệu.
+
+Asked for: “sau bước này tôi cần cập nhật verdict không” và “Hướng dẫn tôi cách kiểm tra quan sát CSR-SSR”.
+
+Kept: Ghi kết quả của năm câu README trong CSR-SSR.md; chỉ cập nhật VERDICTS.md nếu quan sát mới làm thay đổi kết quả kiểm thử đã ghi. So sánh /?v=c ở normal với /ssr bằng View Source, cách hiển thị tên scarf, tắt JavaScript rồi reload, bật lại JavaScript để đếm request trong Network, và nhận xét khi nào dùng CSR hoặc SSR. Phân biệt View Source với DOM đã cập nhật trong Elements.
+
+Changed: Dùng hướng dẫn thao tác để thực hiện phần quan sát và viết năm câu trả lời trong CSR-SSR.md. Số request trong hướng dẫn ban đầu là dự kiến; số đo thực tế của tôi được ghi ở mục tiếp theo.
+
+Rejected: Không coi các hành vi dự kiến trong hướng dẫn là kết quả do trợ lý tự chạy. Không dùng kết luận mọi trang SSR đều nhanh hơn CSR; nhận xét gắn với starter đã quan sát.
+
+Verification: Trợ lý cung cấp hướng dẫn, không tự chạy trình duyệt hoặc đo Network trong lần hướng dẫn này. Kết quả tôi đã quan sát được lưu riêng trong CSR-SSR.md.
+
+## 2026-11-03 — Ghi nhận kết quả quan sát CSR–SSR và cập nhật AI log
+
+Tool: Codex trong cuộc trò chuyện phụ hỗ trợ IA3; model chưa được xác nhận trong tài liệu.
+
+Asked for: “cập nhật lại AI log”, sau đó nhắc “cập nhật AI log, tôi đã cung cấp kết quả quan sát rồi”.
+
+Kept: Ghi nhận kết quả thực tế tôi đã lưu trong CSR-SSR.md: source CSR chưa có thẻ sản phẩm và stock-value là dấu —; source SSR có sẵn sản phẩm và tổng 12.360.000 đ. Source SSR chứa Scarf &lt;i&gt;limited&lt;/i&gt;, còn giao diện hiển thị nguyên văn tên với dấu ngoặc và không in nghiêng. Khi tắt JavaScript rồi reload, CSR còn khung giao diện, không có thẻ sản phẩm và tổng vẫn là —; SSR vẫn có sản phẩm và tổng tiền. Khi bật lại JavaScript, xóa Network và reload, tôi đếm được 14 request ở CSR và 2 request ở SSR.
+
+Changed: Bổ sung lần hướng dẫn và lần ghi nhận kết quả này vào AI-LOG.md. Giữ nhận xét của tôi trong CSR-SSR.md: SSR cung cấp nội dung trong HTML ban đầu; CSR cần JavaScript và các request dữ liệu để hoàn thành nội dung. Tôi chọn SSR khi cần nội dung có sẵn trong HTML và vẫn đọc được khi tắt JavaScript, CSR cho phần giao diện cần tương tác hoặc cập nhật thường xuyên.
+
+Rejected: Sửa ghi nhận ban đầu của trợ lý rằng tôi chưa cung cấp kết quả quan sát: CSR-SSR.md đã có đủ năm câu trả lời và số request tôi đếm. Bản nháp nhật ký mang ghi nhận cũ chưa được lưu vào AI-LOG.md. Không mô tả việc trợ lý đọc báo cáo là một lượt kiểm thử trình duyệt mới.
+
+Verification: Trợ lý đọc CSR-SSR.md trong thư mục bài của tôi và đối chiếu nội dung trước khi cập nhật log. Các kết quả trên là quan sát tôi đã báo cáo, không phải số đo mới do trợ lý thực hiện. Lần này chỉ bổ sung AI-LOG.md, giữ nguyên các mục cũ; không sửa CSR-SSR.md, VERDICTS.md, code, ảnh hoặc trạng thái Git.
